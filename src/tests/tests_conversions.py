@@ -16,25 +16,25 @@ class TestConversions(unittest.TestCase):
         """
         Test if the validation of a checksum over data is correct.
         """
-        from btcp.btcp_socket import validate_checksum, calculate_checksum
+        from btcp.btcp_socket import valid_checksum, calculate_checksum
 
         # Create an artificial packet and calculate the checksum over it. Even length packet.
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x00\xff\xee\xdd\xcc\xbb\xaa'
         checksum = calculate_checksum(packet)
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef' + checksum + b'\xff\xee\xdd\xcc\xbb\xaa'
-        self.assertEqual(validate_checksum(packet), True)
+        self.assertTrue(valid_checksum(packet))
 
         # Create an artificial packet and calculate the checksum over it. Uneven length packet.
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x00\xff\xee\xdd\xcc\xbb\xaa\x99'
         checksum = calculate_checksum(packet)
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef' + checksum + b'\xff\xee\xdd\xcc\xbb\xaa\x99'
-        self.assertEqual(validate_checksum(packet), True)
+        self.assertTrue(valid_checksum(packet))
 
         # Create an artificial packet and calculate the checksum over it. Even length packet. Bit flip.
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x00\xff\xee\xdd\xcc\xbb\xaa\x99'
         checksum = calculate_checksum(packet)
         packet = b'\x00\x23\x45\x67\x89\xab\xcd\xef' + checksum + b'\xff\xee\xdd\xcc\xbb\xaa\x99'
-        self.assertEqual(validate_checksum(packet), False)
+        self.assertFalse(valid_checksum(packet))
 
     def test_flags_array_to_byte(self):
         """
@@ -44,7 +44,7 @@ class TestConversions(unittest.TestCase):
 
         # Test for an error when to many flags are given.
         with self.assertRaises(ValueError):
-            flags_array_to_byte([True, False, True, False, True, False, True, False, True])
+            flags_array_to_byte([True] * 9)
 
         # Test for correct conversions.
         self.assertEqual(flags_array_to_byte([False, False, False]), b'\x00')
@@ -83,13 +83,46 @@ class TestConversions(unittest.TestCase):
         """
         Test the transformation of the packets from ascii to bytes.
         """
-        pass
+        from btcp.btcp_socket import ascii_to_bytes
+        import btcp.constants
+
+        self.assertEqual(ascii_to_bytes(100, 200, [True, False, True], 5, b'\x01\x23\x45\x67\x89'),
+                         b'\x00d\x00\xc8\x05\x05\x00\x05*?\x01#Eg\x89')
+
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(-1, 0, [True] * 3, 0, b'')
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(65536, 0, [True] * 3, 0, b'')
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(0, 0, [True] * 9, 0, b'')
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(0, 0, [True, True], 0, b'')
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(0, 0, [True] * 3, 256, b'')
+        with self.assertRaises(ValueError):
+            ascii_to_bytes(0, 0, [True] * 3, 0, b'\x00' * (btcp.constants.PAYLOAD_SIZE + 1))
 
     def test_bytes_to_ascii(self):
         """
          Test the transformation of the packets from bytes to ascii.
         """
-        pass
+        from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii
+        import btcp.constants
+
+        cases = [
+            (0, 0, [False] * 3, 0, b''),
+            (65535, 65535, [True] * 3, 255, b'\x00' * btcp.constants.PAYLOAD_SIZE),
+            (32143, 432, [True, False, True], 123, b'\x98' * 543)
+        ]
+        for case in cases:
+            segment = ascii_to_bytes(case[0], case[1], case[2], case[3], case[4])
+            self.assertEqual(bytes_to_ascii(segment), case)
+
+        for case in cases:
+            segment = ascii_to_bytes(case[0], case[1], case[2], case[3], case[4])
+            segment = segment[:3] + b'\x12' + segment[4:]
+            with self.assertRaises(ValueError):
+                bytes_to_ascii(segment)
 
 
 if __name__ == "__main__":

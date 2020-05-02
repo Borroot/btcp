@@ -36,14 +36,14 @@ def run_command(command, cwd=None, shell=True):
         process = subprocess.Popen(command, shell=shell, cwd=cwd)
         print(str(process))
     except Exception as inst:
-        print("1. problem running command : \n   ", str(command), "\n problem : ", str(inst))
+        print("Problem running command : \n   ", str(command), "\n problem : ", str(inst))
 
     process.communicate()  # wait for the process to end
     if process.returncode:
-        print("2. problem running command : \n   ", str(command), " ", process.returncode)
+        print("Problem running command : \n   ", str(command), " ", process.returncode)
 
 
-class TestbTCPFramework(unittest.TestCase):
+class TestFramework(unittest.TestCase):
     """Test cases for bTCP"""
 
     def setUp(self):
