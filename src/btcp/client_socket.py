@@ -1,13 +1,12 @@
-from btcp.btcp_socket import BTCPSocket
 from btcp.lossy_layer import LossyLayer
 from btcp.constants import *
 
 
 # bTCP client socket
 # A client application makes use of the services provided by bTCP by calling connect, send, disconnect, and close
-class BTCPClientSocket(BTCPSocket):
-    def __init__(self, window, timeout):
-        super().__init__(window, timeout)
+class BTCPClientSocket:
+
+    def __init__(self, timeout):
         self._lossy_layer = LossyLayer(self, CLIENT_IP, CLIENT_PORT, SERVER_IP, SERVER_PORT)
 
     # Called by the lossy layer from another thread whenever a segment arrives. 

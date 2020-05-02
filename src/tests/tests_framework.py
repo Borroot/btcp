@@ -5,11 +5,11 @@ import time
 import sys
 
 timeout = 100
-winsize = 100
-intf = "lo"
-netem_add = "sudo tc qdisc add dev {} root netem".format(intf)
-netem_change = "sudo tc qdisc change dev {} root netem {}".format(intf, "{}")
-netem_del = "sudo tc qdisc del dev {} root netem".format(intf)
+window_size = 100
+interface = "lo"
+netem_add = "sudo tc qdisc add dev {} root netem".format(interface)
+netem_change = "sudo tc qdisc change dev {} root netem {}".format(interface, "{}")
+netem_del = "sudo tc qdisc del dev {} root netem".format(interface)
 
 
 def run_command_with_output(command, input=None, cwd=None, shell=True):
@@ -17,16 +17,15 @@ def run_command_with_output(command, input=None, cwd=None, shell=True):
     import subprocess
     try:
         process = subprocess.Popen(command, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-    except Exception as inst:
-        print("problem running command : \n   ", str(command))
+        # No pipes set for stdin/stdout/stdout streams so effectively just wait for process ends (same as process.wait()).
+        [stdout_data, stderr_data] = process.communicate(input)
 
-    [stdoutdata, stderrdata] = process.communicate(input)  # no pipes set for stdin/stdout/stdout streams so does effectively only just wait for process ends  (same as process.wait()
-
-    if process.returncode:
-        print(stderrdata)
-        print("problem running command : \n   ", str(command), " ", process.returncode)
-
-    return stdoutdata
+        if process.returncode:
+            print(stderr_data)
+            print("Problem running command : \n   ", str(command), " ", process.returncode)
+        return stdout_data
+    except subprocess.SubprocessError:
+        print("Problem running command : \n", str(command))
 
 
 def run_command(command, cwd=None, shell=True):
@@ -40,7 +39,6 @@ def run_command(command, cwd=None, shell=True):
         print("1. problem running command : \n   ", str(command), "\n problem : ", str(inst))
 
     process.communicate()  # wait for the process to end
-
     if process.returncode:
         print("2. problem running command : \n   ", str(command), " ", process.returncode)
 
@@ -155,22 +153,13 @@ class TestbTCPFramework(unittest.TestCase):
         # content received by server matches the content sent by client
 
 
-#    def test_command(self):
-#        #command=['dir','.']
-#        out = run_command_with_output("dir .")
-#        print(out)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="bTCP tests")
     parser.add_argument("-w", "--window", help="Define bTCP window size used", type=int, default=100)
     parser.add_argument("-t", "--timeout", help="Define the timeout value used (ms)", type=int, default=timeout)
     args, extra = parser.parse_known_args()
     timeout = args.timeout
-    winsize = args.window
+    window_size = args.window
 
-    # Pass the extra arguments to unittest
-    sys.argv[1:] = extra
-
-    # Start test suite
-    unittest.main()
+    sys.argv[1:] = extra  # Pass the extra arguments to unittest
+    unittest.main()       # Start test suite
