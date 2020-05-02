@@ -20,13 +20,16 @@ def handle_incoming_segments(btcp_sock, event, udp_sock):
 # an unreliable segment delivery service between a and b. When the lossy layer is created, 
 # a thread is started that calls handle_incoming_segments. 
 class LossyLayer:
+
     def __init__(self, btcp_sock, a_ip, a_port, b_ip, b_port):
         self._btcp_sock = btcp_sock
         self._b_ip = b_ip
         self._b_port = b_port
+
         self._udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._udp_sock.bind((a_ip, a_port))
+
         self._event = threading.Event()
         self._thread = threading.Thread(target=handle_incoming_segments, args=(self._btcp_sock, self._event, self._udp_sock))
         self._thread.start()
