@@ -5,11 +5,17 @@ class TestConversions(unittest.TestCase):
     """Test cases for ascii <-> bytes conversions and the checksum."""
 
     def test_calculate_checksum(self):
+        """
+        Test the calculation of a checksum over data.
+        """
         from btcp.btcp_socket import calculate_checksum
 
         self.assertEqual(calculate_checksum(b'\x00\x01\xf2\x03\xf4\xf5\xf6\xf7'), b'\x22\x0d')
 
     def test_validate_checksum(self):
+        """
+        Test if the validation of a checksum over data is correct.
+        """
         from btcp.btcp_socket import validate_checksum, calculate_checksum
 
         # Create an artificial packet and calculate the checksum over it. Even length packet.
@@ -23,6 +29,12 @@ class TestConversions(unittest.TestCase):
         checksum = calculate_checksum(packet)
         packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef' + checksum + b'\xff\xee\xdd\xcc\xbb\xaa\x99'
         self.assertEqual(validate_checksum(packet), True)
+
+        # Create an artificial packet and calculate the checksum over it. Even length packet. Bit flip.
+        packet = b'\x01\x23\x45\x67\x89\xab\xcd\xef\x00\x00\xff\xee\xdd\xcc\xbb\xaa\x99'
+        checksum = calculate_checksum(packet)
+        packet = b'\x00\x23\x45\x67\x89\xab\xcd\xef' + checksum + b'\xff\xee\xdd\xcc\xbb\xaa\x99'
+        self.assertEqual(validate_checksum(packet), False)
 
     def test_flags_array_to_byte(self):
         """
