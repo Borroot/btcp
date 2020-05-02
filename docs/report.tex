@@ -19,5 +19,13 @@
 
 \section{File transfer}
 
+\section{Implementation}
+This section describes some design choices on the implementation level.
+
+	\subsection{bTCP socket interface}
+	The description of the bTCP protocol in the assignment tells us that we only need to have traffic being send from the client to the server. The server will only send ACKs back to the client for receiving its data. This means that we only need to think about the receiving window of the server. It also means that only the client needs to keep a timer in order to determine when to resend a packet.
+
+	The template provided for this project does not account for this and gives a timeout and window size parameter to both the client and the server even though they both only need one. I refractored the bTCP socket interface so it does not need to be a class anymore containing these variables. This makes it easier to test the individual functions as well as providing a cleaner code base, since unnecessary variables are removed from both the client and the server.
+
 
 \end{document}

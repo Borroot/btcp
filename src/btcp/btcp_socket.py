@@ -1,6 +1,30 @@
 
-def checksum(data):
-    pass
+def calculate_checksum(data):
+    """
+    Calculate the Internet Checksum as defined by RFC 1071. If the data is not divisible by 16 bits then the data is
+    padded with zeros until it is.
+    :return: The Internet Checksum computed over the given data (with padding).
+    """
+    if len(data) % 2 != 0:
+        data += b'\x00'
+
+    sum = 0
+    for pair in range(0, len(data), 2):
+        current = (data[pair] << 8) + data[pair+1]
+        if sum + current >= 2**16:
+            sum = (sum + current) % 2**16 + 1
+        else:
+            sum += current
+    checksum = sum ^ 0xffff
+    return checksum.to_bytes(2, byteorder='big')
+
+
+def validate_checksum(data):
+    """
+    Validate the Internet Checksum as defined by RFC 1071.
+    :return: If the checksum is correct yes or no.
+    """
+    return calculate_checksum(data) == b'\x00\x00'
 
 
 def flags_array_to_byte(flags):
@@ -49,7 +73,7 @@ def ascii_to_bytes(seq_num, ack_num, flags, window_size, data_length, checksum, 
     header += flags_array_to_byte(flags)
     header += window_size.to_bytes(1, byteorder='big')
     header += data_length.to_bytes(2, byteorder='big')
-    header += b'\x00\x00'  # TODO: calculate the checksum
+    header += calculate_checksum(header + b'\x00\x00' + data.encode())
     return header + data.encode()
 
 
