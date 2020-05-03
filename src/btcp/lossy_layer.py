@@ -12,7 +12,7 @@ def handle_incoming_segments(btcp_sock, event, udp_sock):
         # We do not block here, because we might never check the loop condition in that case
         rlist, wlist, elist = select.select([udp_sock], [], [], 1)
         if rlist:
-            segment = udp_sock.recvfrom(SEGMENT_SIZE)
+            segment, client = udp_sock.recvfrom(SEGMENT_SIZE)
             btcp_sock.lossy_layer_input(segment)
 
 

@@ -12,6 +12,8 @@ def main():
 
     sock = BTCPServerSocket(args.window)
     # TODO Write your file transfer server code here using your BTCPServerSocket's accept, and recv methods.
+    sock.accept()
+    print("[server] A connection is established.")
 
     sock.close()
 

@@ -101,8 +101,8 @@ def bytes_to_ascii(segment):
     """
     seq_num     = struct.unpack('>H', segment[0:2])[0]
     ack_num     = struct.unpack('>H', segment[2:4])[0]
-    flags       = flags_byte_to_array(segment[4].to_bytes(1, byteorder='big'))
-    window_size = struct.unpack('>B', segment[5].to_bytes(1, byteorder='big'))[0]
+    flags       = flags_byte_to_array(segment[4:5])
+    window_size = struct.unpack('>B', segment[5:6])[0]
     data_length = struct.unpack('>H', segment[6:8])[0]
     data        = segment[10:]
 
