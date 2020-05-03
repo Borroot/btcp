@@ -134,20 +134,3 @@ class BTCPClientSocket:
             # Restart the timeout timer.
             self._timer = threading.Timer(self._timeout, self._handle_fin_timeout)
             self._timer.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

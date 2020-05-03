@@ -1,6 +1,7 @@
 \documentclass[a4paper]{article}
 
 \usepackage{a4wide}
+\usepackage{graphicx}
 
 \author{Bram Pulles}
 \title{\textbf{bTCP: basic Transmission Control Protocol}}
@@ -12,12 +13,44 @@
 \pagebreak
 
 \section{Finite state machines}
+This section describes all of the finite state machines for bTCP. In every finite state machine figure, the transitions where messages are received or send have the part being received on top and the part being send underneath.
+
+	\subsection{Connection establishment}
+	The finite state machines for the establishment of a connection can be seen in figure \ref{fig: phase 1 client} and \ref{fig: phase 1 server}, for the client and server respectively. Note that we do not verify if the server received the last ACK. This is not implemented in the code and could potentially cause a failure if the ACK is not received and the client already starts to send data.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width = \textwidth]{phase1_client.png}
+		\caption{FSM connection establishment client.}
+		\label{fig: phase 1 client}
+	\end{figure}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width = \textwidth]{phase1_server.png}
+		\caption{FSM connection establishment server.}
+		\label{fig: phase 1 server}
+	\end{figure}
+
+	\subsection{Sending data}
+	The finite state machines for an established connection where data is being send can be seen in figure \ref{fig: phase 2 client} and \ref{fig: phase 2 server}, for the client and the server respectively.
+	% TODO Add finite state machines.
+
+	\subsection{Connection termination}
+	The finite state machines for the termination of a connection can be seen in figure \ref{fig: phase 3 client} and \ref{fig: phase 3 server}, for the client and server respectively. Note that the server does not verify if the ACK send is received by the client. This is not implemented in the code and could potentially cause a failure if the ACK is not received by the client and the server already closes. However, since the client terminates the connection after having done a certain amount of tries (each with a timeout), it does not matter.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width = \textwidth]{phase3_client.png}
+		\caption{FSM connection termination client.}
+		\label{fig: phase 3 client}
+	\end{figure}
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width = .7\textwidth]{phase3_server.png}
+		\caption{FSM connection termination server.}
+		\label{fig: phase 3 server}
+	\end{figure}
 
 \section{Reliability}
 This section describes some design choices regarding reliability.
-
-	\subsection{Handshake}
-	In bTCP only the client sends data to the server, the server never sends data to the client. This means that we only need one initial sequence number, namely one for the segments send from the client. In the three way handshake however, two initial sequence numbers are initialized. We will just discard the sequence number from the server. We do want to get the third ACK however since the window size is shared in the previous segment and this will confirm that the client has the window size.
 
 \section{Flow control}
 
