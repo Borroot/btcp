@@ -18,6 +18,9 @@ class BTCPServerSocket:
         # Variables for the connection establishment phase.
         self._connected_flag = None  # An event to signify when the connection is established.
 
+        # Variables for the connection termination phase.
+        self._finished_flag = None   # An event to signify when the connection is finished.
+
     # Called by the lossy layer from another thread whenever a segment arrives
     def lossy_layer_input(self, segment):
         try:
@@ -27,7 +30,7 @@ class BTCPServerSocket:
             elif flags[1]:  # SYN
                 self._handle_syn(seq_num)
             elif flags[2]:  # FIN
-                pass
+                self._handle_fin()
             else:           # DATA
                 pass
         except ValueError:  # Incorrect checksum or data length.
@@ -40,7 +43,12 @@ class BTCPServerSocket:
 
     # Send any incoming data to the application layer
     def recv(self):
-        pass
+        self._finished_flag = threading.Event()
+
+        # TODO Start receiving data.
+
+        self._finished_flag.wait()
+        # return data
 
     # Clean up any state
     def close(self):
@@ -57,3 +65,8 @@ class BTCPServerSocket:
             self._seq_num_client += 1
             self._seq_num_server += 1
             self._connected_flag.set()
+
+    def _handle_fin(self):
+        segment = ascii_to_bytes(0, 0, [True, False, True], 0, b'')
+        self._lossy_layer.send_segment(segment)
+        self._finished_flag.set()

@@ -17,7 +17,7 @@
 This section describes some design choices regarding reliability.
 
 	\subsection{Handshake}
-	In bTCP only the client sends data to the server, the server never sends data to the client. This means that we only need one initial sequence number, namely one for the segments send from the client. In the three way handshake however, two initial sequence numbers are initialized. We will just discard the sequence number from the server. For this reason we also do not need to verify that the third message was received by the server. This verification would normally be done by issuing a reset, but in bTCP this is not needed.
+	In bTCP only the client sends data to the server, the server never sends data to the client. This means that we only need one initial sequence number, namely one for the segments send from the client. In the three way handshake however, two initial sequence numbers are initialized. We will just discard the sequence number from the server. We do want to get the third ACK however since the window size is shared in the previous segment and this will confirm that the client has the window size.
 
 \section{Flow control}
 

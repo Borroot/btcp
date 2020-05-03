@@ -11,10 +11,13 @@ def main():
     args = parser.parse_args()
 
     sock = BTCPServerSocket(args.window)
-    # TODO Write your file transfer server code here using your BTCPServerSocket's accept, and recv methods.
+
     sock.accept()
     print("[server] A connection is established.")
 
+    sock.recv()
+
+    print("[server] The connection is terminated.")
     sock.close()
 
 

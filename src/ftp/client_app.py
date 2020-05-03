@@ -11,13 +11,25 @@ def main():
     args = parser.parse_args()
 
     sock = BTCPClientSocket(args.timeout)
-    # TODO Write your file transfer client code using your implementation of BTCPClientSocket's connect, send, and disconnect methods.
+
+    def close(exit_status):
+        sock.close()
+        exit(exit_status)
+
     if sock.connect():
         print("[client] A connection is established.")
     else:
         print("[client] Error while trying to connect.")
+        close(1)
 
-    sock.close()
+    # TODO Send data.
+
+    if sock.disconnect():
+        print("[client] The connection is terminated.")
+    else:
+        print("[client] The connection is terminated abnormally.")
+        close(1)
+    close(0)
 
 
 if __name__ == '__main__':
