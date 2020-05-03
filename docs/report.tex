@@ -13,10 +13,10 @@
 \pagebreak
 
 \section{Finite state machines}
-This section describes all of the finite state machines for bTCP. In every finite state machine figure, the transitions where messages are received or send have the part being received on top and the part being send underneath.
+This section describes all of the finite state machines for bTCP. In every finite state machine figure, the transitions where messages are received or send have the part being received on top and the part being send underneath, a - indicates that nothing is send/received.
 
 	\subsection{Connection establishment}
-	The finite state machines for the establishment of a connection can be seen in figure \ref{fig: phase 1 client} and \ref{fig: phase 1 server}, for the client and server respectively. Note that we do not verify if the server received the last ACK. This is not implemented in the code and could potentially cause a failure if the ACK is not received and the client already starts to send data.
+	The finite state machines for the establishment of a connection can be seen in figure \ref{fig: phase 1 client} and \ref{fig: phase 1 server}, for the client and server respectively. Note that we do not verify if the server received the last ACK. This is not implemented in the code and could potentially cause a failure if the ACK is not received and the client already starts to send data. However, the chance that this ACK would get lost is considerably small.
 	\begin{figure}[h]
 		\centering
 		\includegraphics[width = \textwidth]{phase1_client.png}
@@ -35,7 +35,7 @@ This section describes all of the finite state machines for bTCP. In every finit
 	% TODO Add finite state machines.
 
 	\subsection{Connection termination}
-	The finite state machines for the termination of a connection can be seen in figure \ref{fig: phase 3 client} and \ref{fig: phase 3 server}, for the client and server respectively. Note that the server does not verify if the ACK send is received by the client. This is not implemented in the code and could potentially cause a failure if the ACK is not received by the client and the server already closes. However, since the client terminates the connection after having done a certain amount of tries (each with a timeout), it does not matter.
+	The finite state machines for the termination of a connection can be seen in figure \ref{fig: phase 3 client} and \ref{fig: phase 3 server}, for the client and server respectively. Note that the server does not verify if the ACK send is received by the client. However, since the client terminates the connection after having done a certain amount of tries (each with a timeout), it does not matter since both will close correctly anyways.
 	\begin{figure}[h]
 		\centering
 		\includegraphics[width = \textwidth]{phase3_client.png}
@@ -50,7 +50,6 @@ This section describes all of the finite state machines for bTCP. In every finit
 	\end{figure}
 
 \section{Reliability}
-This section describes some design choices regarding reliability.
 
 \section{Flow control}
 

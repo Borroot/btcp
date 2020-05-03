@@ -140,7 +140,6 @@ class TestFramework(unittest.TestCase):
 
     def test_allbad_network(self):
         """reliability over network with all of the above problems"""
-
         # setup environment
         run_command(netem_change.format("corrupt 1% duplicate 10% loss 10% 25% delay 20ms reorder 25% 50%"))
 
