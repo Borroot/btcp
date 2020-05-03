@@ -11,8 +11,8 @@ class BTCPClientSocket:
     def __init__(self, timeout):
         self._lossy_layer = LossyLayer(self, CLIENT_IP, CLIENT_PORT, SERVER_IP, SERVER_PORT)
 
-        self._timeout = timeout   # The timeout for one segment.
-        self._timer   = None      # The timer used to detect a timeout.
+        self._timeout = timeout / 100000  # The timeout for one segment in seconds..
+        self._timer   = None              # The timer used to detect a timeout.
 
         self._window_size = None  # The window size of the server.
         self._seq_num     = None  # The current sequence number.
