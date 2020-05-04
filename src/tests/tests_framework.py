@@ -67,8 +67,15 @@ class TestFramework(unittest.TestCase):
 
         # Send the data simply by starting the server and client app.
         import ftp.client_app, ftp.server_app
-        ftp.server_app.main()
-        ftp.client_app.main()
+        import threading
+        server = threading.Thread(target=ftp.server_app.main)
+        client = threading.Thread(target=ftp.client_app.main)
+
+        server.start()
+        client.start()
+
+        server.join()
+        client.join()
 
         # Check if the data in output.txt is the same as in input.txt.
         import filecmp

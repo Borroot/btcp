@@ -177,14 +177,12 @@ class BTCPClientSocket:
             self._timer.start()
 
     def _handle_ack(self, ack_num, window_size):
-        print('ACK received for {}.\tThe window size is {}.'.format(ack_num, window_size))
         # Update the window size and increase the send base by one if this was the next to be ACKed segment.
         self._window_size = window_size
         try:
             self._send_base_lock.acquire()
             if self._send_base == ack_num - self._seq_num:
                 self._send_base = ack_num - self._seq_num + 1
-            print("The new send base is {}.".format(self._send_base))
         finally:
             self._send_base_lock.release()
 
@@ -192,7 +190,6 @@ class BTCPClientSocket:
         try:
             self._status_lock.acquire()
             self._status[ack_num - self._seq_num] = 3  # ACKed flag
-            print(self._status)
         finally:
             self._status_lock.release()
 
@@ -208,13 +205,12 @@ class BTCPClientSocket:
             try:
                 self._status_lock.acquire()
                 self._pending_lock.acquire()
-                print('Pending {}.'.format(self._pending))
                 still_pending = []
                 for (seq_num, time_send) in self._pending:
                     if time.time_ns() // 1000 - time_send > self._timeout * 100000:
                         # A timeout occurred, change the status flag to timeout so it will be resend.
-                        self._status[self._seq_num - seq_num] = 2  # timeout flag
-                        print(self._status)
+                        if self._status[self._seq_num - seq_num] != 3:  # not ACKed
+                            self._status[self._seq_num - seq_num] = 2  # timeout flag
                     else:
                         still_pending.append((seq_num, time_send))
                 self._pending = still_pending
@@ -231,7 +227,6 @@ class BTCPClientSocket:
                 self._status_lock.acquire()
                 for index, status in enumerate(self._status[self._send_base:self._send_base + self._window_size]):
                     if (status == 0 or status == 2) and len(self._pending) < self._window_size:  # not send or timeout
-                        # TODO Check if the message we are gonna resend is not already pending.
                         # Check if the amount of tries for this segment is exceeded.
                         if self._segments[self._send_base + index][1] <= 0:
                             return False
@@ -239,7 +234,6 @@ class BTCPClientSocket:
                             self._segments[self._send_base + index][1] -= 1
 
                         # Send the segment, add it to the pending segments and update the status.
-                        print('Sending sequence number {}.'.format(self._send_base + index + self._seq_num))
                         self._lossy_layer.send_segment(self._segments[self._send_base + index][0])
                         self._status[self._send_base + index] = 1  # send but not ACKed flag
                         try:

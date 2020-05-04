@@ -7,7 +7,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--timeout", help="Define bTCP timeout in milliseconds", type=int, default=100)
-    parser.add_argument("-i", "--input", help="File to send", default="input.txt")
+    parser.add_argument("-i", "--input", help="File to send", default="../ftp/input.txt")
     args = parser.parse_args()
 
     sock = BTCPClientSocket(args.timeout)
