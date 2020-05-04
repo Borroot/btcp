@@ -1,6 +1,6 @@
 from btcp.lossy_layer import LossyLayer
 from btcp.constants import *
-from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii
+from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii, create_segments
 import random
 import threading
 
@@ -66,7 +66,7 @@ class BTCPClientSocket:
     # Send data originating from the application in a reliable way to the server.
     def send(self, data):
         data = data.encode()
-        self._segments = BTCPClientSocket._create_segments(data, self._seq_num)
+        self._segments = create_segments(data, self._seq_num)
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):
@@ -89,18 +89,6 @@ class BTCPClientSocket:
     # Clean up any state.
     def close(self):
         self._lossy_layer.destroy()
-
-    @staticmethod
-    def _create_segments(data, isn):
-        # Chop the data bytes into segments with max payload and return a list with all the segments.
-        segments = []
-        seq_num = isn
-        while len(data) > 0:
-            segment = ascii_to_bytes(seq_num, 0, [False, False, False], 0, data[:PAYLOAD_SIZE])
-            segments.append(segment)
-            seq_num += 1
-            data = data[PAYLOAD_SIZE:]
-        return segments
 
     def _handle_syn(self, seq_num, ack_num, window_size):
         if ack_num == self._seq_num + 1:

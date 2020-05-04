@@ -1,6 +1,6 @@
 from btcp.lossy_layer import LossyLayer
 from btcp.constants import *
-from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii
+from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii, merge_segments
 import random
 import threading
 
@@ -13,13 +13,17 @@ class BTCPServerSocket:
 
         self._window_size = window_size  # The window size of this server.
         self._seq_num_server = None      # The sequence number for this server (practically ignored).
-        self._seq_num_client = None      # The sequence number from the client.
+        self._seq_num_client = None      # The sequence number from the client (practically ignored).
+
+        # Variables for receiving data from the client.
+        self._data = None                # Tuples with (seq_num, data bytes) which are received.
+        self._buffer = None              # Contains segments which need to be processed and send back an ACK for.
 
         # Variables for the connection establishment phase.
-        self._connected_flag = None  # An event to signify when the connection is established.
+        self._connected_flag = None      # An event to signify when the connection is established.
 
         # Variables for the connection termination phase.
-        self._finished_flag = None   # An event to signify when the connection is finished.
+        self._finished_flag = None       # An event to signify when the connection is finished.
 
     # Called by the lossy layer from another thread whenever a segment arrives
     def lossy_layer_input(self, segment):
@@ -48,7 +52,10 @@ class BTCPServerSocket:
         # TODO Start receiving data.
 
         self._finished_flag.wait()
-        # return data (as str)
+
+        # Merge all the received data together in the correct order.
+        data = merge_segments(self._data)
+        return data.decode()
 
     # Clean up any state
     def close(self):

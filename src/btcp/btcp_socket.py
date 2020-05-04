@@ -2,6 +2,30 @@ import struct
 import btcp.constants
 
 
+def create_segments(data, isn):
+    """
+    Chop the data bytes into segments with max payload and return a list with all the segments.
+    :param isn: The initial sequence number.
+    """
+    segments = []
+    seq_num = isn
+    while len(data) > 0:
+        segment = ascii_to_bytes(seq_num, 0, [False, False, False], 0, data[:btcp.constants.PAYLOAD_SIZE])
+        segments.append(segment)
+        seq_num += 1
+        data = data[btcp.constants.PAYLOAD_SIZE:]
+    return segments
+
+
+def merge_segments(data):
+    """
+    Merge the data together.
+    :param data: Tuples with (seq_num, data bytes).
+    :return: The data bytes sorted without the sequence numbers.
+    """
+    return b''.join([data for (_, data) in sorted(data)])
+
+
 def calculate_checksum(segment):
     """
     Calculate the Internet Checksum as defined by RFC 1071. If the data is not divisible by 16 bits then the data is

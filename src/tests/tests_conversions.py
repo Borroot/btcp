@@ -128,8 +128,7 @@ class TestConversions(unittest.TestCase):
         """
         Test if the data is chopped into correct segments.
         """
-        from btcp.client_socket import BTCPClientSocket
-        create_segments = BTCPClientSocket._create_segments
+        from btcp.btcp_socket import create_segments
 
         data = b'\x00' * 1008 + b'\x01' * 1008 + b'\x02' * 1008 + b'\x03' * 50
         isn = 10
@@ -139,6 +138,27 @@ class TestConversions(unittest.TestCase):
                    b'\x00\x0c\x00\x00\x00\x00\x03\xf0\x08\x10' + b'\x02' * 1008,
                    b'\x00\r\x00\x00\x00\x00\x002\xb4u' + b'\x03' * 50]
         self.assertEqual(segments, correct)
+
+    def test_merge_segments(self):
+        """
+        Test if the data merging goes correctly.
+        """
+        from btcp.btcp_socket import create_segments, merge_segments, bytes_to_ascii
+        import random
+
+        data_init = b'\x00' * 5008 + b'\x01' * 1328 + b'\x02' * 654 + b'\x03' * 50 + b'\x01' * 321
+        isn = 10
+        segments = create_segments(data_init, isn)
+        random.shuffle(segments)
+        to_be_sorted = []
+        for segment in segments:
+            seq_num, ack_num, flags, window_size, data = bytes_to_ascii(segment)
+            to_be_sorted.append((seq_num, data))
+
+        answer = merge_segments(to_be_sorted)
+        self.assertEqual(data_init, answer)
+
+
 
 
 if __name__ == "__main__":
