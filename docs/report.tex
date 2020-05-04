@@ -13,7 +13,7 @@
 \pagebreak
 
 \section{Finite state machines}
-This section describes all of the finite state machines for bTCP. In every finite state machine figure, the transitions where messages are received or send have the part being received on top and the part being send underneath, a - indicates that nothing is send/received.
+This section describes all of the finite state machines for bTCP. In every finite state machine figure, the transitions where messages are received or send have the part being received on top and the part being send underneath. Further, a - indicates that nothing is send/received. At last, everything before the vertical bar indicates the flags which are set and everything after the bar is the content/values of the segment.
 
 	\subsection{Connection establishment}
 	The finite state machines for the establishment of a connection can be seen in figure \ref{fig: phase 1 client} and \ref{fig: phase 1 server}, for the client and server respectively. Note that we do not verify if the server received the last ACK. This is not implemented in the code and could potentially cause a failure if the ACK is not received and the client already starts to send data. However, the chance that this ACK would get lost is considerably small.
@@ -30,9 +30,15 @@ This section describes all of the finite state machines for bTCP. In every finit
 		\label{fig: phase 1 server}
 	\end{figure}
 
-	\subsection{Sending data}
-	The finite state machines for an established connection where data is being send can be seen in figure \ref{fig: phase 2 client} and \ref{fig: phase 2 server}, for the client and the server respectively.
-	% TODO Add finite state machines.
+	\subsection{Sending/receiving data}
+	The finite state machines for an established connection where data is being send can be seen in figure \ref{fig: phase 2 client} and \ref{fig: phase 2 server}, for the client and the server respectively. The FSM for the server is extremely simply, since it only sends back ACKs for segments it received, that is all.
+	% TODO Add finite state machine for the client.
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width = .3\textwidth]{phase2_server.png}
+		\caption{FSM receiving data server.}
+		\label{fig: phase 2 server}
+	\end{figure}
 
 	\subsection{Connection termination}
 	The finite state machines for the termination of a connection can be seen in figure \ref{fig: phase 3 client} and \ref{fig: phase 3 server}, for the client and server respectively. Note that the server does not verify if the ACK send is received by the client. However, since the client terminates the connection after having done a certain amount of tries (each with a timeout), it does not matter since both will close correctly anyways.

@@ -30,7 +30,7 @@ class BTCPServerSocket:
     def lossy_layer_input(self, segment):
         try:
             seq_num, ack_num, flags, window_size, data = bytes_to_ascii(segment)
-            if  flags[0]:  # ACK
+            if   flags[0]:  # ACK
                 self._handle_ack(seq_num, ack_num)
             elif flags[1]:  # SYN
                 self._handle_syn(seq_num)
