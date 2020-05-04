@@ -60,6 +60,16 @@ class TestFramework(unittest.TestCase):
 
         # close server
 
+    def setup_network(self):
+        # Clear the output.txt file.
+        with open('../ftp/output.txt', 'w'):
+            pass
+
+        # Send the data simply by starting the server and client app.
+
+        # Check if the data in output.txt is the same as in input.txt.
+
+
     def test_ideal_network(self):
         """reliability over an ideal framework"""
         # setup environment (nothing to set)

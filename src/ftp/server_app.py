@@ -6,7 +6,7 @@ from btcp.server_socket import BTCPServerSocket
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w", "--window", help="Define bTCP window size", type=int, default=100)
+    parser.add_argument("-w", "--window", help="Define bTCP window size", type=int, default=5)
     parser.add_argument("-o", "--output", help="Where to store the file", default="output.txt")
     args = parser.parse_args()
 
