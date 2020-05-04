@@ -1,6 +1,7 @@
 from btcp.lossy_layer import LossyLayer
 from btcp.constants import *
 from btcp.btcp_socket import ascii_to_bytes, bytes_to_ascii, create_segments
+import time
 import random
 import threading
 
@@ -16,13 +17,18 @@ class BTCPClientSocket:
         self._seq_num = None              # The initial sequence number, initialized during establishment.
 
         # Variables for sending data over to the server.
-        self._segments    = None       # All the segments which are to be send in order.
-        self._status      = None       # The status for every segment: 0 not send, 1 send not ACKed, 2 timeout, 3 ACKed.
-        self._send_base   = None       # The index for self._segments up to which all segments are ACKed.
-        self._window_size = None       # The window size of the server, initialized during establishment.
+        self._send_flag = None     # A flag to signify when to stop all the threads.
 
-        self._status_lock      = None  # Ensure that changing the status list is done thread safe.
-        self._window_size_lock = None  # Ensure that changing the window size is done thread safe.
+        self._segments = None      # All the segments which are to be send in order.
+        self._status   = None      # The status for every segment: 0 not send, 1 send not ACKed, 2 timeout, 3 ACKed.
+        self._pending  = None      # The time at which certain segments are send, contains (seq_num, time send).
+
+        self._send_base   = None   # The index for self._segments up to which all segments are ACKed.
+        self._window_size = None   # The window size of the server, initialized during establishment.
+
+        self._status_lock  = None  # Ensure that changing the status list is done thread safe.
+        self._pending_lock = None  # Ensure that changing the pending list is done thread safe.
+        self._window_send_base_lock = None  # Ensure that changing the send base and the window is done thread safe.
 
         # Variables for the connection establishment phase.
         self._syn_tries = None         # The number of tries to establish a connection.
@@ -72,15 +78,30 @@ class BTCPClientSocket:
         data = data.encode()
 
         # Initialize all the variables.
+        self._send_flag = threading.Event()
+        self._send_base = 0
+
         self._segments = create_segments(data, self._seq_num)
-        self._status   = []
+        self._status   = [0] * len(self._segments)
+        self._pending  = []
 
-        # Initialize all the locks.
-        self._status_lock      = threading.Lock()
-        self._window_size_lock = threading.Lock()
+        self._status_lock  = threading.Lock()
+        self._pending_lock = threading.Lock()
+        self._window_send_base_lock = threading.Lock()
 
-        self._send_loop()
-        # TODO Start the timer in a new thread.
+        # Start the timer in a new thread.
+        self._timer = threading.Thread(self._timer_loop())
+        self._timer.start()
+
+        # Send all of the segments, returns if all are send.
+        success = self._send_loop()
+
+        # Set the _send_flag so the timer will stop.
+        self._send_flag.set()
+        self._timer.join()
+
+        # Return if the sending of all the segments was successful.
+        return success
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):
@@ -154,13 +175,51 @@ class BTCPClientSocket:
             self._timer.start()
 
     def _handle_ack(self, ack_num, window_size):
-        # Update the window size.
-        self._window_size = window_size
+        # Update the window size and increase the send base by one if this was the next to be ACKed segment.
+        try:
+            self._window_send_base_lock.acquire()
+            self._window_size = window_size
+            if self._send_base == ack_num - self._seq_num - 1:
+                self._send_base = ack_num - self._seq_num
+        finally:
+            self._window_send_base_lock.release()
 
-        # Change the segment status to received and change the send_base if possible.
+        # Change the segment status to received ACK.
+        try:
+            self._status_lock.acquire()
+            self._status[ack_num - self._seq_num] = 3
+        finally:
+            self._status_lock.release()
+
+        # Remove the ACKed segment from the pending list.
+        try:
+            self._pending_lock.acquire()
+            self._pending = [(seq_num, _time) for (seq_num, _time) in self._pending if seq_num != ack_num]
+        finally:
+            self._pending_lock.release()
+
+    def _timer_loop(self):
+        while not self._send_flag.is_set():
+            try:
+                self._pending_lock.acquire()
+                for seq_num, time_send in self._pending:
+                    if time_send - time.time_ns() // 1000 > self._timeout:
+                        # A timeout occurred, change the status flag to timeout so it will be resend.
+                        try:
+                            self._status_lock.acquire()
+                            self._status[self._seq_num - seq_num] = 2  # timeout flag
+                        finally:
+                            self._status_lock.release()
+            finally:
+                self._pending_lock.release()
 
     def _send_loop(self):
-        pass
+        while self._send_base < len(self._segments):  # There are segments left to get ACKed.
+            # Check all the segments from the send base till the window if one can be send and then send ONE or none.
+            # TODO Send segment, add to pending and update status.
+
+        # TODO Return if everything was send successfully.
+        return True
 
 
 
