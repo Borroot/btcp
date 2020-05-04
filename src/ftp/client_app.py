@@ -24,7 +24,10 @@ def main():
 
     with open(args.input, 'r', encoding='utf-8') as file:
         data = file.read()
-    sock.send(data)
+    if sock.send(data):
+        print("[client] The data is successfully transferred.")
+    else:
+        print("[client] Error while trying to transfer the data.")
 
     if sock.disconnect():
         print("[client] The connection is terminated.")

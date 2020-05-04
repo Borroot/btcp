@@ -59,7 +59,7 @@ class BTCPClientSocket:
         # Create the initial sequence number and amount of tries to establish a connection and the connected flag.
         self._connected_flag = threading.Event()
         self._connected = False
-        self._syn_tries = 10
+        self._syn_tries = 30
         self._seq_num = random.randint(0, 0xffff)
 
         # Send the first segment to the server.
@@ -182,9 +182,8 @@ class BTCPClientSocket:
         self._window_size = window_size
         try:
             self._send_base_lock.acquire()
-            print("The old send base is {}.".format(self._send_base))
             if self._send_base == ack_num - self._seq_num:
-                self._send_base += 1
+                self._send_base = ack_num - self._seq_num + 1
             print("The new send base is {}.".format(self._send_base))
         finally:
             self._send_base_lock.release()
@@ -207,17 +206,21 @@ class BTCPClientSocket:
     def _timer_loop(self):
         while not self._send_flag.is_set():
             try:
+                self._status_lock.acquire()
                 self._pending_lock.acquire()
-                for seq_num, time_send in self._pending:
-                    if time_send - time.time_ns() // 1000 > self._timeout:
+                print('Pending {}.'.format(self._pending))
+                still_pending = []
+                for (seq_num, time_send) in self._pending:
+                    if time.time_ns() // 1000 - time_send > self._timeout * 100000:
                         # A timeout occurred, change the status flag to timeout so it will be resend.
-                        try:
-                            self._status_lock.acquire()
-                            self._status[self._seq_num - seq_num] = 2  # timeout flag
-                        finally:
-                            self._status_lock.release()
+                        self._status[self._seq_num - seq_num] = 2  # timeout flag
+                        print(self._status)
+                    else:
+                        still_pending.append((seq_num, time_send))
+                self._pending = still_pending
             finally:
                 self._pending_lock.release()
+                self._status_lock.release()
             time.sleep(0.005)
 
     def _send_loop(self):
@@ -227,7 +230,8 @@ class BTCPClientSocket:
                 self._send_base_lock.acquire()
                 self._status_lock.acquire()
                 for index, status in enumerate(self._status[self._send_base:self._send_base + self._window_size]):
-                    if status == 0 or status == 2:  # not send or timeout
+                    if (status == 0 or status == 2) and len(self._pending) < self._window_size:  # not send or timeout
+                        # TODO Check if the message we are gonna resend is not already pending.
                         # Check if the amount of tries for this segment is exceeded.
                         if self._segments[self._send_base + index][1] <= 0:
                             return False
@@ -240,7 +244,7 @@ class BTCPClientSocket:
                         self._status[self._send_base + index] = 1  # send but not ACKed flag
                         try:
                             self._pending_lock.acquire()
-                            self._pending.append((self._send_base + index, time.time_ns() // 1000))
+                            self._pending.append((self._send_base + index + self._seq_num, time.time_ns() // 1000))
                         finally:
                             self._pending_lock.release()
             finally:

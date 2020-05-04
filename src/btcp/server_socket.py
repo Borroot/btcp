@@ -16,6 +16,7 @@ class BTCPServerSocket:
         self._seq_num_client = None      # The sequence number from the client (practically ignored).
 
         # Variables for receiving data from the client.
+        self._recv_data = None           # A variable to check if we are already handling the receiving data.
         self._data = None                # Tuples with (seq_num, data bytes) which are received.
         self._buffer = None              # Contains sequence numbers which need to be send back an ACK for.
 
@@ -35,7 +36,8 @@ class BTCPServerSocket:
                 self._handle_syn(seq_num)
             elif flags[2]:  # FIN
                 self._handle_fin()
-            else:           # DATA
+            else:  # DATA
+                if not self._connected_flag.is_set(): self._connected_flag.set()
                 self._handle_data(seq_num, data)
         except ValueError:  # Incorrect checksum or data length.
             pass
@@ -81,12 +83,15 @@ class BTCPServerSocket:
         self._finished_flag.set()
 
     def _handle_data(self, seq_num, data):
-        self._buffer.append(seq_num)
-        self._data.append((seq_num, data))
+        if self._recv_data:
+            self._buffer.append(seq_num)
+            self._data.append((seq_num, data))
 
     def _handle_buffer(self):
+        self._recv_data = True
         while not self._finished_flag.is_set():
             if self._buffer:
                 seq_num = self._buffer.pop(0)
                 segment = ascii_to_bytes(0, seq_num, [True, False, False], self._window_size - len(self._buffer), b'')
                 self._lossy_layer.send_segment(segment)
+        self._recv_data = False

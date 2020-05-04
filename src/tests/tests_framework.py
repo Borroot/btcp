@@ -49,117 +49,65 @@ class TestFramework(unittest.TestCase):
     def setUp(self):
         """Prepare for testing"""
         # default netem rule (does nothing)
-        run_command(netem_add)
+        # run_command(netem_add)
 
         # launch localhost server
 
     def tearDown(self):
         """Clean up after testing"""
         # clean the environment
-        run_command(netem_del)
+        # run_command(netem_del)
 
         # close server
 
-    def setup_network(self):
+    def exchange(self):
         # Clear the output.txt file.
         with open('../ftp/output.txt', 'w'):
             pass
 
         # Send the data simply by starting the server and client app.
+        import ftp.client_app, ftp.server_app
+        ftp.server_app.main()
+        ftp.client_app.main()
 
         # Check if the data in output.txt is the same as in input.txt.
-
+        import filecmp
+        self.assertTrue(filecmp.cmp('../ftp/input.txt', '../ftp/output.txt', shallow=False))
 
     def test_ideal_network(self):
         """reliability over an ideal framework"""
-        # setup environment (nothing to set)
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_flipping_network(self):
         """reliability over network with bit flips
         (which sometimes results in lower layer packet loss)"""
-        # setup environment
         run_command(netem_change.format("corrupt 1%"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_duplicates_network(self):
         """reliability over network with duplicate packets"""
-        # setup environment
         run_command(netem_change.format("duplicate 10%"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_lossy_network(self):
         """reliability over network with packet loss"""
-        # setup environment
         run_command(netem_change.format("loss 10% 25%"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_reordering_network(self):
         """reliability over network with packet reordering"""
-        # setup environment
         run_command(netem_change.format("delay 20ms reorder 25% 50%"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_delayed_network(self):
         """reliability over network with delay relative to the timeout value"""
-        # setup environment
         run_command(netem_change.format("delay " + str(timeout) + "ms 20ms"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
     def test_allbad_network(self):
         """reliability over network with all of the above problems"""
-        # setup environment
         run_command(netem_change.format("corrupt 1% duplicate 10% loss 10% 25% delay 20ms reorder 25% 50%"))
-
-        # launch localhost client connecting to server
-
-        # client sends content to server
-
-        # server receives content from client
-
-        # content received by server matches the content sent by client
+        self.exchange()
 
 
 if __name__ == "__main__":
