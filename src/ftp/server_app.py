@@ -15,7 +15,9 @@ def main():
     sock.accept()
     print("[server] A connection is established.")
 
-    sock.recv()
+    data = sock.recv()
+    with open(args.output, 'w', encoding='utf-8') as file:
+        file.write(data)
 
     print("[server] The connection is terminated.")
     sock.close()

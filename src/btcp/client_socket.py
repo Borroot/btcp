@@ -17,15 +17,18 @@ class BTCPClientSocket:
         self._window_size = None  # The window size of the server.
         self._seq_num     = None  # The current sequence number.
 
+        # Variables for sending data over to the server.
+        self._segments = None     # All the segments which are to be send in order.
+
         # Variables for the connection establishment phase.
         self._syn_tries = None       # The number of tries to establish a connection.
         self._connected = None       # A boolean to signify if the connection was successful, returned by connect().
         self._connected_flag = None  # An event to signify when the connection is established.
 
         # Variables for the connection termination phase.
-        self._fin_tries = None      # The number of tries to terminate a connection.
-        self._finished = None       # A boolean to signify if the closing was (ab)normal, returned by disconnect().
-        self._finished_flag = None  # An event to signify when the connection is terminated.
+        self._fin_tries = None       # The number of tries to terminate a connection.
+        self._finished = None        # A boolean to signify if the closing was (ab)normal, returned by disconnect().
+        self._finished_flag = None   # An event to signify when the connection is terminated.
 
     # Called by the lossy layer from another thread whenever a segment arrives. 
     def lossy_layer_input(self, segment):
@@ -62,7 +65,7 @@ class BTCPClientSocket:
 
     # Send data originating from the application in a reliable way to the server.
     def send(self, data):
-        pass
+        data = data.encode()
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):

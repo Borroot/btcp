@@ -22,7 +22,9 @@ def main():
         print("[client] Error while trying to connect.")
         close(1)
 
-    # TODO Send data.
+    with open(args.input, 'r', encoding='utf-8') as file:
+        data = file.read()
+    sock.send(data)
 
     if sock.disconnect():
         print("[client] The connection is terminated.")
