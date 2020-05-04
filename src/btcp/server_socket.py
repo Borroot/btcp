@@ -19,7 +19,6 @@ class BTCPServerSocket:
         self._lock_data = None           # A lock to ensure that only one thread is looking at self._data.
         self._data = None                # Tuples with (seq_num, data bytes) which are received.
         self._buffer = None              # Contains sequence numbers which need to be send back an ACK for.
-        self._thread_ack = None          # This thread sends back ACKs for the sequence numbers in the buffer.
 
         # Variables for the connection establishment phase.
         self._connected_flag = None      # An event to signify when the connection is established.
@@ -54,13 +53,8 @@ class BTCPServerSocket:
         self._data = []
         self._buffer = []
 
-        # Start emptying the buffer by sending back ACKs.
-        self._thread_ack = threading.Thread(target=self._handle_buffer)
-        self._thread_ack.start()
-
-        # Wait until the final handshake is done.
-        self._finished_flag.wait()
-        self._thread_ack.join()  # Stop with sending back ACKs.
+        # Try to empty the buffer all the time, i.e. send ACKs back for received segments.
+        self._handle_buffer()
 
         # Merge all the received data together in the correct order.
         data = merge_segments(self._data)

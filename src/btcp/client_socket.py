@@ -39,7 +39,7 @@ class BTCPClientSocket:
             elif flags[0] and flags[2]:  # ACK & FIN
                 self._handle_fin()
             elif flags[0]:  # ACK
-                pass
+                pass  # TODO Handle the received ACKs.
         except ValueError:  # Incorrect checksum or data length.
             pass
 
@@ -67,6 +67,8 @@ class BTCPClientSocket:
     def send(self, data):
         data = data.encode()
         self._segments = create_segments(data, self._seq_num)
+
+        # TODO Send the data.
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):
