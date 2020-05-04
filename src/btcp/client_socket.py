@@ -83,7 +83,7 @@ class BTCPClientSocket:
         self._seg_tries = 30
         self._send_base = 0
 
-        self._segments = [(segment, self._seg_tries) for segment in create_segments(data, self._seq_num)]
+        self._segments = [[segment, self._seg_tries] for segment in create_segments(data, self._seq_num)]
         self._status   = [0] * len(self._segments)
         self._pending  = []
 
@@ -92,7 +92,7 @@ class BTCPClientSocket:
         self._window_send_base_lock = threading.Lock()
 
         # Start the timer in a new thread.
-        self._timer = threading.Thread(self._timer_loop())
+        self._timer = threading.Thread(target=self._timer_loop)
         self._timer.start()
 
         # Send all of the segments, returns if all are send.
