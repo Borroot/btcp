@@ -87,7 +87,8 @@ class BTCPServerSocket:
 
     def _handle_data(self, seq_num, data):
         self._buffer.append(seq_num)
-        self._data.append((seq_num, data))
+        if (seq_num, data) not in self._data:
+            self._data.append((seq_num, data))
 
     def _handle_buffer(self):
         while not self._finished_flag.is_set():
