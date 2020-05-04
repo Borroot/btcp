@@ -49,6 +49,8 @@ class BTCPServerSocket:
     # Send any incoming data to the application layer
     def recv(self):
         self._finished_flag = threading.Event()
+        self._data = []
+        self._buffer = []
 
         # Start emptying the buffer by sending back ACKs.
         self._thread_ack = threading.Thread(target=self._handle_buffer)
