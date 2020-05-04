@@ -16,6 +16,7 @@ class BTCPServerSocket:
         self._seq_num_client = None      # The sequence number from the client (practically ignored).
 
         # Variables for receiving data from the client.
+        self._lock_data = None           # A lock to ensure that only one thread is looking at self._data.
         self._data = None                # Tuples with (seq_num, data bytes) which are received.
         self._buffer = None              # Contains sequence numbers which need to be send back an ACK for.
         self._thread_ack = None          # This thread sends back ACKs for the sequence numbers in the buffer.
@@ -49,6 +50,7 @@ class BTCPServerSocket:
     # Send any incoming data to the application layer
     def recv(self):
         self._finished_flag = threading.Event()
+        self._lock_data = threading.Lock()
         self._data = []
         self._buffer = []
 
@@ -87,8 +89,12 @@ class BTCPServerSocket:
 
     def _handle_data(self, seq_num, data):
         self._buffer.append(seq_num)
-        if (seq_num, data) not in self._data:
-            self._data.append((seq_num, data))
+        try:
+            self._lock_data.acquire()
+            if (seq_num, data) not in self._data:
+                self._data.append((seq_num, data))
+        finally:
+            self._lock_data.release()
 
     def _handle_buffer(self):
         while not self._finished_flag.is_set():

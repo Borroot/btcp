@@ -72,7 +72,7 @@ class BTCPClientSocket:
     def disconnect(self):
         self._finished_flag = threading.Event()
         self._finished = False
-        self._fin_tries = 10
+        self._fin_tries = 15
 
         # Send a FIN to the server.
         segment = ascii_to_bytes(0, 0, [False, False, True], 0, b'')
