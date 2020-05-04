@@ -13,22 +13,28 @@ class BTCPClientSocket:
 
         self._timeout = timeout / 100000  # The timeout for one segment in seconds.
         self._timer   = None              # The timer used to detect a timeout.
-
-        self._window_size = None  # The window size of the server.
-        self._seq_num     = None  # The initial sequence number.
+        self._seq_num = None              # The initial sequence number, initialized during establishment.
 
         # Variables for sending data over to the server.
-        self._segments = None     # All the segments which are to be send in order.
+        self._segments = None          # All the segments which are to be send in order.
+        self._resend   = None          # Segments which received a timeout and need to be resend.
+        self._pending  = None          # Segments which are send, but not ACKed yet as (seq_num, time_send).
+        self._window_size = None       # The window size of the server, initialized during establishment.
+
+        self._segments_lock    = None  # Ensure that changing the segments is done thread safe.
+        self._resend_lock      = None  # Ensure that changing the resend list is done thread safe.
+        self._pending_lock     = None  # Ensure that changing the pending list is done thread safe.
+        self._window_size_lock = None  # Ensure that changing the window size is done thread safe.
 
         # Variables for the connection establishment phase.
-        self._syn_tries = None       # The number of tries to establish a connection.
-        self._connected = None       # A boolean to signify if the connection was successful, returned by connect().
-        self._connected_flag = None  # An event to signify when the connection is established.
+        self._syn_tries = None         # The number of tries to establish a connection.
+        self._connected = None         # A boolean to signify if the connection was successful, returned by connect().
+        self._connected_flag = None    # An event to signify when the connection is established.
 
         # Variables for the connection termination phase.
-        self._fin_tries = None       # The number of tries to terminate a connection.
-        self._finished = None        # A boolean to signify if the closing was (ab)normal, returned by disconnect().
-        self._finished_flag = None   # An event to signify when the connection is terminated.
+        self._fin_tries = None         # The number of tries to terminate a connection.
+        self._finished = None          # A boolean to signify if the closing was (ab)normal, returned by disconnect().
+        self._finished_flag = None     # An event to signify when the connection is terminated.
 
     # Called by the lossy layer from another thread whenever a segment arrives. 
     def lossy_layer_input(self, segment):
@@ -39,7 +45,7 @@ class BTCPClientSocket:
             elif flags[0] and flags[2]:  # ACK & FIN
                 self._handle_fin()
             elif flags[0]:  # ACK
-                pass  # TODO Handle the received ACKs.
+                self._handle_ack(ack_num, window_size)
         except ValueError:  # Incorrect checksum or data length.
             pass
 
@@ -66,7 +72,17 @@ class BTCPClientSocket:
     # Send data originating from the application in a reliable way to the server.
     def send(self, data):
         data = data.encode()
+
+        # Initialize all the variables.
         self._segments = create_segments(data, self._seq_num)
+        self._resend   = []
+        self._pending  = []
+
+        # Initialize all the locks.
+        self._segments_lock    = threading.Lock()
+        self._resend_lock      = threading.Lock()
+        self._pending_lock     = threading.Lock()
+        self._window_size_lock = threading.Lock()
 
         # TODO Send the data.
 
@@ -140,3 +156,52 @@ class BTCPClientSocket:
             # Restart the timeout timer.
             self._timer = threading.Timer(self._timeout, self._handle_fin_timeout)
             self._timer.start()
+
+    def _handle_ack(self, ack_num, window_size):
+        # Update the window size.
+        try:
+            self._window_size_lock.acquire()
+            self._window_size = window_size
+        finally:
+            self._window_size_lock.release()
+
+        # Remove all of the segments from all the different lists with the ACKed sequence number.
+        try:
+            self._resend_lock.acquire()
+            self._resend = [seq_num for seq_num in self._resend if seq_num != ack_num]
+        finally:
+            self._resend_lock.release()
+
+        try:
+            self._pending_lock.acquire()
+            self._pending = [seq_num for seq_num in self._pending if seq_num != ack_num]
+        finally:
+            self._pending_lock.release()
+
+        try:
+            self._segments_lock.acquire()
+            self._segments = [(seq_num, data) for (seq_num, data) in self._segments if seq_num != ack_num]
+        finally:
+            self._segments_lock.release()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
