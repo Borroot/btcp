@@ -92,6 +92,6 @@ class BTCPServerSocket:
         while not self._finished_flag.is_set():
             if self._buffer:
                 seq_num = self._buffer.pop(0)
-                segment = ascii_to_bytes(0, seq_num, [True, False, False], self._window_size - len(self._buffer), b'')
+                segment = ascii_to_bytes(0, seq_num, [True, False, False], max(self._window_size - len(self._buffer), 0), b'')
                 self._lossy_layer.send_segment(segment)
         self._recv_data = False

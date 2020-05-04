@@ -23,6 +23,7 @@ class BTCPClientSocket:
         self._segments = None      # All segments which are to be send plus the amount of tries left for every segment.
         self._status   = None      # The status for every segment: 0 not send, 1 send not ACKed, 2 timeout, 3 ACKed.
         self._pending  = None      # The time at which certain segments are send, contains (seq_num, time send).
+        self._acks     = None      # All of the acknowledgements which need to be processed.
 
         self._send_base   = None   # The index for self._segments up to which all segments are ACKed.
         self._window_size = None   # The window size of the server, initialized during establishment.
@@ -86,21 +87,27 @@ class BTCPClientSocket:
         self._segments = [[segment, self._seg_tries] for segment in create_segments(data, self._seq_num)]
         self._status   = [0] * len(self._segments)
         self._pending  = []
+        self._acks     = []
 
         self._status_lock  = threading.Lock()
         self._pending_lock = threading.Lock()
         self._send_base_lock = threading.Lock()
 
+        # Start the acknowledgement loop in a new thread.
+        acks = threading.Thread(target=self._ack_loop)
+        acks.start()
+
         # Start the timer in a new thread.
-        self._timer = threading.Thread(target=self._timer_loop)
-        self._timer.start()
+        timer = threading.Thread(target=self._timer_loop)
+        timer.start()
 
         # Send all of the segments, returns if all are send.
         success = self._send_loop()
 
         # Set the _send_flag so the timer will stop.
         self._send_flag.set()
-        self._timer.join()
+        acks.join()
+        timer.join()
 
         # Return if the sending of all the segments was successful.
         return success
@@ -177,28 +184,34 @@ class BTCPClientSocket:
             self._timer.start()
 
     def _handle_ack(self, ack_num, window_size):
-        # Update the window size and increase the send base by one if this was the next to be ACKed segment.
-        self._window_size = window_size
-        try:
-            self._send_base_lock.acquire()
-            if self._send_base == ack_num - self._seq_num:
-                self._send_base = ack_num - self._seq_num + 1
-        finally:
-            self._send_base_lock.release()
+        self._acks.append((ack_num, window_size))
 
-        # Change the segment status to received ACK.
-        try:
-            self._status_lock.acquire()
-            self._status[ack_num - self._seq_num] = 3  # ACKed flag
-        finally:
-            self._status_lock.release()
+    def _ack_loop(self):
+        while not self._send_flag.is_set():
+            if self._acks:
+                ack_num, window_size = self._acks.pop(0)
+                # Update the window size and increase the send base by one if this was the next to be ACKed segment.
+                self._window_size = window_size
+                try:
+                    self._send_base_lock.acquire()
+                    if self._send_base == ack_num - self._seq_num:
+                        self._send_base = ack_num - self._seq_num + 1
+                finally:
+                    self._send_base_lock.release()
 
-        # Remove the ACKed segment from the pending list.
-        try:
-            self._pending_lock.acquire()
-            self._pending = [(seq_num, _time) for (seq_num, _time) in self._pending if seq_num != ack_num]
-        finally:
-            self._pending_lock.release()
+                # Change the segment status to received ACK.
+                try:
+                    self._status_lock.acquire()
+                    self._status[ack_num - self._seq_num] = 3  # ACKed flag
+                finally:
+                    self._status_lock.release()
+
+                # Remove the ACKed segment from the pending list.
+                try:
+                    self._pending_lock.acquire()
+                    self._pending = [(seq_num, _time) for (seq_num, _time) in self._pending if seq_num != ack_num]
+                finally:
+                    self._pending_lock.release()
 
     def _timer_loop(self):
         while not self._send_flag.is_set():
