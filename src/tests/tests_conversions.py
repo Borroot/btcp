@@ -159,7 +159,5 @@ class TestConversions(unittest.TestCase):
         self.assertEqual(data_init, answer)
 
 
-
-
 if __name__ == "__main__":
     unittest.main()
