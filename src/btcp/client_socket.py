@@ -16,14 +16,12 @@ class BTCPClientSocket:
         self._seq_num = None              # The initial sequence number, initialized during establishment.
 
         # Variables for sending data over to the server.
-        self._segments = None          # All the segments which are to be send in order.
-        self._resend   = None          # Segments which received a timeout and need to be resend.
-        self._pending  = None          # Segments which are send, but not ACKed yet as (seq_num, time_send).
+        self._segments    = None       # All the segments which are to be send in order.
+        self._status      = None       # The status for every segment: 0 not send, 1 send not ACKed, 2 timeout, 3 ACKed.
+        self._send_base   = None       # The index for self._segments up to which all segments are ACKed.
         self._window_size = None       # The window size of the server, initialized during establishment.
 
-        self._segments_lock    = None  # Ensure that changing the segments is done thread safe.
-        self._resend_lock      = None  # Ensure that changing the resend list is done thread safe.
-        self._pending_lock     = None  # Ensure that changing the pending list is done thread safe.
+        self._status_lock      = None  # Ensure that changing the status list is done thread safe.
         self._window_size_lock = None  # Ensure that changing the window size is done thread safe.
 
         # Variables for the connection establishment phase.
@@ -75,16 +73,14 @@ class BTCPClientSocket:
 
         # Initialize all the variables.
         self._segments = create_segments(data, self._seq_num)
-        self._resend   = []
-        self._pending  = []
+        self._status   = []
 
         # Initialize all the locks.
-        self._segments_lock    = threading.Lock()
-        self._resend_lock      = threading.Lock()
-        self._pending_lock     = threading.Lock()
+        self._status_lock      = threading.Lock()
         self._window_size_lock = threading.Lock()
 
-        # TODO Send the data.
+        self._send_loop()
+        # TODO Start the timer in a new thread.
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):
@@ -159,31 +155,12 @@ class BTCPClientSocket:
 
     def _handle_ack(self, ack_num, window_size):
         # Update the window size.
-        try:
-            self._window_size_lock.acquire()
-            self._window_size = window_size
-        finally:
-            self._window_size_lock.release()
+        self._window_size = window_size
 
-        # Remove all of the segments from all the different lists with the ACKed sequence number.
-        try:
-            self._resend_lock.acquire()
-            self._resend = [seq_num for seq_num in self._resend if seq_num != ack_num]
-        finally:
-            self._resend_lock.release()
+        # Change the segment status to received and change the send_base if possible.
 
-        try:
-            self._pending_lock.acquire()
-            self._pending = [seq_num for seq_num in self._pending if seq_num != ack_num]
-        finally:
-            self._pending_lock.release()
-
-        try:
-            self._segments_lock.acquire()
-            self._segments = [(seq_num, data) for (seq_num, data) in self._segments if seq_num != ack_num]
-        finally:
-            self._segments_lock.release()
-
+    def _send_loop(self):
+        pass
 
 
 
