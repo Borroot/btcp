@@ -124,6 +124,22 @@ class TestConversions(unittest.TestCase):
             with self.assertRaises(ValueError):
                 bytes_to_ascii(segment)
 
+    def test_create_segments(self):
+        """
+        Test if the data is chopped into correct segments.
+        """
+        from btcp.client_socket import BTCPClientSocket
+        create_segments = BTCPClientSocket._create_segments
+
+        data = b'\x00' * 1008 + b'\x01' * 1008 + b'\x02' * 1008 + b'\x03' * 50
+        isn = 10
+        segments = create_segments(data, isn)
+        correct = [b'\x00\n\x00\x00\x00\x00\x03\xf0\xfc\x05' + b'\x00' * 1008,
+                   b'\x00\x0b\x00\x00\x00\x00\x03\xf0\x02\x0b' + b'\x01' * 1008,
+                   b'\x00\x0c\x00\x00\x00\x00\x03\xf0\x08\x10' + b'\x02' * 1008,
+                   b'\x00\r\x00\x00\x00\x00\x002\xb4u' + b'\x03' * 50]
+        self.assertEqual(segments, correct)
+
 
 if __name__ == "__main__":
     unittest.main()

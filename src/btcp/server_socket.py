@@ -48,7 +48,7 @@ class BTCPServerSocket:
         # TODO Start receiving data.
 
         self._finished_flag.wait()
-        # return data
+        # return data (as str)
 
     # Clean up any state
     def close(self):

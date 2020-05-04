@@ -15,7 +15,7 @@ class BTCPClientSocket:
         self._timer   = None              # The timer used to detect a timeout.
 
         self._window_size = None  # The window size of the server.
-        self._seq_num     = None  # The current sequence number.
+        self._seq_num     = None  # The initial sequence number.
 
         # Variables for sending data over to the server.
         self._segments = None     # All the segments which are to be send in order.
@@ -66,6 +66,7 @@ class BTCPClientSocket:
     # Send data originating from the application in a reliable way to the server.
     def send(self, data):
         data = data.encode()
+        self._segments = BTCPClientSocket._create_segments(data, self._seq_num)
 
     # Perform a handshake to terminate a connection.
     def disconnect(self):
@@ -88,6 +89,18 @@ class BTCPClientSocket:
     # Clean up any state.
     def close(self):
         self._lossy_layer.destroy()
+
+    @staticmethod
+    def _create_segments(data, isn):
+        # Chop the data bytes into segments with max payload and return a list with all the segments.
+        segments = []
+        seq_num = isn
+        while len(data) > 0:
+            segment = ascii_to_bytes(seq_num, 0, [False, False, False], 0, data[:PAYLOAD_SIZE])
+            segments.append(segment)
+            seq_num += 1
+            data = data[PAYLOAD_SIZE:]
+        return segments
 
     def _handle_syn(self, seq_num, ack_num, window_size):
         if ack_num == self._seq_num + 1:
